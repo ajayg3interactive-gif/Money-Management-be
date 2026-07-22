@@ -19,6 +19,7 @@ app.use(cookieParser());
 app.use("/api/transactions", require("./src/routes/routes"));
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/categories", require("./src/routes/category.routes"));
+app.use("/api/budgets", require("./src/routes/budget.routes"));
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 // app.use('/columns', require('./src/routes/columns'));
 
