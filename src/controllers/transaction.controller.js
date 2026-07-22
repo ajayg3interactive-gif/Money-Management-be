@@ -11,7 +11,7 @@ const format = (t) => ({
 
 const getAll = async (req, res) => {
   try {
-    const transactions = await Transactions.find();
+    const transactions = await Transactions.find({ user: req.user.id });
     res.json(transactions.map(format));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -22,6 +22,7 @@ const create = async (req, res) => {
   try {
     const { date, description, category, amount, type } = req.body;
     const transaction = new Transactions({
+      user: req.user.id,
       date,
       description,
       category,
@@ -38,8 +39,8 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { date, description, category, amount, type } = req.body;
-    const updated = await Transactions.findByIdAndUpdate(
-      req.params.id,
+    const updated = await Transactions.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
       { date, description, category, amount, type },
       { new: true, runValidators: true }
     );
@@ -52,7 +53,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
   try {
-    const deleted = await Transactions.findByIdAndDelete(req.params.id);
+    const deleted = await Transactions.findOneAndDelete({ _id: req.params.id, user: req.user.id });
     if (!deleted) return res.status(404).json({ error: "Transaction not found" });
     res.status(204).send();
   } catch (err) {

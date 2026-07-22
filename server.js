@@ -1,12 +1,14 @@
 const express = require("express");
 const mangoose = require("mongoose");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:4200" }));
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:4200", credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 // app.use("/api/users", require(".routes/users"));
 app.use('/api/transactions', require('./src/routes/routes'));
