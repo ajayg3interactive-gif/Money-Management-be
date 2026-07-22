@@ -1,4 +1,5 @@
 const Transactions = require("../models/Transactions");
+const { ok, fail } = require("../utils/response");
 
 const format = (t) => ({
   id: t._id,
@@ -21,6 +22,10 @@ const getAll = async (req, res) => {
 const create = async (req, res) => {
   try {
     const { date, description, category, amount, type } = req.body;
+    if (!date || !category || amount === undefined || amount === null || !type) {
+      return fail(res, 400, "VALIDATION_ERROR", "Date, category, amount and type are required");
+    }
+
     const transaction = new Transactions({
       user: req.user.id,
       date,
@@ -30,9 +35,10 @@ const create = async (req, res) => {
       type,
     });
     const saved = await transaction.save();
-    res.status(201).json(format(saved));
+    return ok(res, format(saved), 201);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error("create transaction failed:", err);
+    return fail(res, 400, "TRANSACTION_CREATE_FAILED", "Could not save transaction. Please try again.");
   }
 };
 
