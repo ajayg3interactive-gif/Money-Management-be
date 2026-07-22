@@ -10,6 +10,7 @@ app.use(express.json());
 
 // app.use("/api/users", require(".routes/users"));
 app.use('/api/transactions', require('./src/routes/routes'));
+app.use('/api/auth', require('./src/routes/auth.routes'));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 // app.use('/columns', require('./src/routes/columns'));
 
