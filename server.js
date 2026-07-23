@@ -20,6 +20,7 @@ app.use("/api/transactions", require("./src/routes/routes"));
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/categories", require("./src/routes/category.routes"));
 app.use("/api/budgets", require("./src/routes/budget.routes"));
+app.use("/api/recurring", require("./src/routes/recurring.routes"));
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 // app.use('/columns', require('./src/routes/columns'));
 
@@ -42,8 +43,34 @@ const seedCategories = async () => {
   }
 };
 
+const seedColumns = async () => {
+  const Column = require("./src/models/columns");
+  const defaults = {
+    transaction: [
+      { position: 1, key: "date", label: "Date", view: true },
+      { position: 2, key: "description", label: "Description", view: true },
+      { position: 3, key: "category", label: "Category", view: true },
+      { position: 4, key: "amount", label: "Amount", view: true },
+      { position: 5, key: "type", label: "Type", view: true },
+      { position: 6, key: "action", label: "Action", view: true },
+    ],
+  };
+  const count = await Column.countDocuments();
+  if (count === 0) {
+    await Column.create(defaults);
+    console.log("Seeded default columns");
+  }
+};
+
 mangoose.connection.once("open", () => {
   seedCategories();
+  seedColumns();
+
+  const { processDueOccurrences } = require("./src/jobs/recurringJob");
+  processDueOccurrences().catch((err) => console.error("recurring job failed:", err));
+  setInterval(() => {
+    processDueOccurrences().catch((err) => console.error("recurring job failed:", err));
+  }, 60 * 60 * 1000);
 });
 
 mangoose
