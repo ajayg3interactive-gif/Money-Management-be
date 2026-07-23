@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const mangoose = require("mongoose");
 const cors = require("cors");
@@ -14,6 +15,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // app.use("/api/users", require(".routes/users"));
 app.use("/api/transactions", require("./src/routes/routes"));
