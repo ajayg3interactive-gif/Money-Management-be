@@ -8,6 +8,14 @@ const columnSchema = new mongoose.Schema({
       label:    String,
       view:     Boolean
     }
+  ],
+  budget: [
+    {
+      position: Number,
+      key:      String,
+      label:    String,
+      view:     Boolean
+    }
   ]
 });
 

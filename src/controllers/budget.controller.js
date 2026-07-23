@@ -1,4 +1,5 @@
 const Budget = require("../models/Budget");
+const Transaction = require("../models/Transactions");
 const { ok, fail } = require("../utils/response");
 
 const format = (b) => ({
@@ -7,10 +8,34 @@ const format = (b) => ({
   maximum: b.maximum,
 });
 
+const currentMonthRange = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const pad = (n) => String(n).padStart(2, "0");
+  const lastDay = new Date(year, month, 0).getDate();
+  return {
+    start: `${year}-${pad(month)}-01`,
+    end: `${year}-${pad(month)}-${pad(lastDay)}`,
+  };
+};
+
 const getAll = async (req, res) => {
   try {
     const budgets = await Budget.find({ user: req.user.id });
-    return ok(res, budgets.map(format));
+
+    const { start, end } = currentMonthRange();
+    const expenses = await Transaction.find({
+      user: req.user.id,
+      type: "Expense",
+      date: { $gte: start, $lte: end },
+    });
+    const spentByCategory = expenses.reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      return acc;
+    }, {});
+
+    return ok(res, budgets.map((b) => ({ ...format(b), spent: spentByCategory[b.category] || 0 })));
   } catch (err) {
     return fail(res, 500, "BUDGET_FETCH_FAILED", err.message);
   }
