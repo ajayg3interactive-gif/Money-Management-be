@@ -5,6 +5,9 @@ const User = require("../models/User");
 const { signToken, setAuthCookie, clearAuthCookie } = require("../utils/jwt");
 const { ok, fail } = require("../utils/response");
 const { AVATAR_DIR } = require("../middleware/upload.middleware");
+const { CURRENCIES } = require("../data/currencies");
+
+const SYMBOL_BY_CODE = new Map(CURRENCIES.map((c) => [c.code, c.symbol]));
 
 const format = (u) => ({
   id: u._id,
@@ -12,6 +15,8 @@ const format = (u) => ({
   email: u.email,
   phone: u.phone ?? null,
   avatarUrl: u.avatarUrl ?? null,
+  currency: u.currency ?? "USD",
+  currencySymbol: SYMBOL_BY_CODE.get(u.currency) ?? "$",
 });
 
 const deleteAvatarFile = (avatarUrl) => {
