@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     phone: { type: String, trim: true, default: null },
     avatarUrl: { type: String, default: null },
+    currency: { type: String, default: "USD" },
   },
   { timestamps: true }
 );

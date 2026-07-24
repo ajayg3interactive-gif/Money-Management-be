@@ -23,6 +23,8 @@ app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/dropdowns", require("./src/routes/dropdown.routes"));
 app.use("/api/budgets", require("./src/routes/budget.routes"));
 app.use("/api/recurring", require("./src/routes/recurring.routes"));
+app.use("/api/balance", require("./src/routes/balance.routes"));
+app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 // app.use('/columns', require('./src/routes/columns'));
 
@@ -33,6 +35,10 @@ const MONTH_NAMES = [
 
 const seedDropdowns = async () => {
   const Dropdown = require("./src/models/dropdown");
+
+  // Currency options are served fully (with country code for flag icons) via
+  // GET /api/balance/currencies instead of the generic Dropdown collection.
+  await Dropdown.deleteMany({ type: "currency" });
 
   const defaults = [
     { type: "category", label: "Food & Dining", value: "food", position: 1 },

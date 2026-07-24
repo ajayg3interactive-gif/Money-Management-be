@@ -12,7 +12,7 @@ const format = (t) => ({
 
 const getAll = async (req, res) => {
   try {
-    const transactions = await Transactions.find({ user: req.user.id });
+    const transactions = await Transactions.find({ user: req.user.id, type: { $ne: "Balance" } });
     res.json(transactions.map(format));
   } catch (err) {
     res.status(500).json({ error: err.message });
