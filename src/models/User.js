@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true, default: null },
     avatarUrl: { type: String, default: null },
     currency: { type: String, default: "USD" },
+    dashboardTourSeen: { type: Boolean, default: false },
+    planTourSeen: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

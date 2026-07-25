@@ -20,7 +20,11 @@ const format = (u) => ({
   avatarUrl: u.avatarUrl ?? null,
   currency: u.currency ?? "USD",
   currencySymbol: SYMBOL_BY_CODE.get(u.currency) ?? "$",
+  dashboardTourSeen: u.dashboardTourSeen ?? false,
+  planTourSeen: u.planTourSeen ?? false,
 });
+
+const TOUR_FIELDS = { "dashboard-onboarding": "dashboardTourSeen", "plan-onboarding": "planTourSeen" };
 
 const deleteAvatarFile = (avatarUrl) => {
   if (!avatarUrl) return;
@@ -227,4 +231,22 @@ const deleteAvatar = async (req, res) => {
   }
 };
 
-module.exports = { sendOtp, verifyOtp, register, login, logout, me, updateProfile, uploadAvatar, deleteAvatar };
+const markTourSeen = async (req, res) => {
+  try {
+    const { tourId, seen } = req.body;
+    const field = TOUR_FIELDS[tourId];
+    if (!field) {
+      return fail(res, 400, "VALIDATION_ERROR", "Unknown tourId");
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, { [field]: seen !== false }, { new: true });
+    if (!user) return fail(res, 401, "UNAUTHENTICATED", "Not authenticated");
+
+    return ok(res, format(user));
+  } catch (err) {
+    console.error("markTourSeen failed:", err);
+    return fail(res, 400, "UPDATE_FAILED", "Could not update tour status. Please try again.");
+  }
+};
+
+module.exports = { sendOtp, verifyOtp, register, login, logout, me, updateProfile, uploadAvatar, deleteAvatar, markTourSeen };
