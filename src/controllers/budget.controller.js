@@ -8,15 +8,15 @@ const format = (b) => ({
   maximum: b.maximum,
 });
 
-const currentMonthRange = () => {
+const currentMonthRange = (month, year) => {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const targetYear = year ? Number(year) : now.getFullYear();
+  const targetMonth = month ? Number(month) : now.getMonth() + 1;
   const pad = (n) => String(n).padStart(2, "0");
-  const lastDay = new Date(year, month, 0).getDate();
+  const lastDay = new Date(targetYear, targetMonth, 0).getDate();
   return {
-    start: `${year}-${pad(month)}-01`,
-    end: `${year}-${pad(month)}-${pad(lastDay)}`,
+    start: `${targetYear}-${pad(targetMonth)}-01`,
+    end: `${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
   };
 };
 
@@ -24,7 +24,7 @@ const getAll = async (req, res) => {
   try {
     const budgets = await Budget.find({ user: req.user.id });
 
-    const { start, end } = currentMonthRange();
+    const { start, end } = currentMonthRange(req.query.month, req.query.year);
     const expenses = await Transaction.find({
       user: req.user.id,
       type: "Expense",
