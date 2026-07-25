@@ -27,4 +27,11 @@ const uploadAvatar = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-module.exports = { uploadAvatar, AVATAR_DIR };
+// Feedback attachments are only relayed as email attachments, never persisted to disk.
+const uploadFeedbackImages = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024, files: 5 },
+});
+
+module.exports = { uploadAvatar, uploadFeedbackImages, AVATAR_DIR };

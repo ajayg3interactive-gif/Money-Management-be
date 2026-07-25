@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, logout, me, updateProfile, uploadAvatar, deleteAvatar } = require('../controllers/user.controller');
+const { sendOtp, verifyOtp, register, login, logout, me, updateProfile, uploadAvatar, deleteAvatar } = require('../controllers/user.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { uploadAvatar: uploadAvatarMiddleware } = require('../middleware/upload.middleware');
 
+router.post('/send-otp', sendOtp);
+router.post('/verify-otp', verifyOtp);
 router.post('/register', register);
 router.post('/login', login);
 router.post('/logout', logout);

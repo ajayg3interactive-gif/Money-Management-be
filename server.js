@@ -25,6 +25,7 @@ app.use("/api/budgets", require("./src/routes/budget.routes"));
 app.use("/api/recurring", require("./src/routes/recurring.routes"));
 app.use("/api/balance", require("./src/routes/balance.routes"));
 app.use("/api/dashboard", require("./src/routes/dashboard.routes"));
+app.use("/api/feedback", require("./src/routes/feedback.routes"));
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 // app.use('/columns', require('./src/routes/columns'));
 
