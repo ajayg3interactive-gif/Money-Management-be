@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { ACTION_EXPIRY_MINUTES } = require("./accountAction");
 
 let transporter = null;
 
@@ -61,4 +62,46 @@ const sendFeedbackEmail = async (user, message, attachments = []) => {
   });
 };
 
-module.exports = { sendOtpEmail, sendFeedbackEmail };
+const sendChangeEmailLink = async (to, name, link) => {
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await getTransporter().sendMail({
+    from,
+    to,
+    subject: "Confirm your email change - FinTrack",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #1f2937;">Change your email address</h2>
+        <p style="color: #4b5563;">Hi ${name},</p>
+        <p style="color: #4b5563;">We received a request to change the email address on your FinTrack account. Click the button below to choose your new email. This link expires in ${ACTION_EXPIRY_MINUTES} minutes.</p>
+        <p style="text-align: center; margin: 24px 0;">
+          <a href="${link}" style="background: #4338ca; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">Change Email</a>
+        </p>
+        <p style="color: #9ca3af; font-size: 12px;">If you didn't request this, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+};
+
+const sendResetPasswordLink = async (to, name, link) => {
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  await getTransporter().sendMail({
+    from,
+    to,
+    subject: "Reset your password - FinTrack",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #1f2937;">Reset your password</h2>
+        <p style="color: #4b5563;">Hi ${name},</p>
+        <p style="color: #4b5563;">We received a request to change the password on your FinTrack account. Click the button below to choose a new password. This link expires in ${ACTION_EXPIRY_MINUTES} minutes.</p>
+        <p style="text-align: center; margin: 24px 0;">
+          <a href="${link}" style="background: #4338ca; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold;">Reset Password</a>
+        </p>
+        <p style="color: #9ca3af; font-size: 12px;">If you didn't request this, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+};
+
+module.exports = { sendOtpEmail, sendFeedbackEmail, sendChangeEmailLink, sendResetPasswordLink };

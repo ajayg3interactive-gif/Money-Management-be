@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { sendOtp, verifyOtp, register, login, logout, me, updateProfile, uploadAvatar, deleteAvatar, markTourSeen } = require('../controllers/user.controller');
+const {
+  sendOtp, verifyOtp, register, login, logout, me, updateProfile, uploadAvatar, deleteAvatar, markTourSeen,
+  requestChangeEmail, confirmChangeEmail, requestChangePassword, confirmResetPassword,
+} = require('../controllers/user.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { uploadAvatar: uploadAvatarMiddleware } = require('../middleware/upload.middleware');
 
@@ -14,5 +17,10 @@ router.put('/me', requireAuth, updateProfile);
 router.post('/me/avatar', requireAuth, uploadAvatarMiddleware.single('avatar'), uploadAvatar);
 router.delete('/me/avatar', requireAuth, deleteAvatar);
 router.patch('/me/tour', requireAuth, markTourSeen);
+
+router.post('/change-email/request', requireAuth, requestChangeEmail);
+router.post('/change-email/confirm', confirmChangeEmail);
+router.post('/change-password/request', requireAuth, requestChangePassword);
+router.post('/reset-password/confirm', confirmResetPassword);
 
 module.exports = router;

@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const COOKIE_NAME = "mm_token";
+
+const newSid = () => crypto.randomUUID();
 
 const signToken = (payload) =>
   jwt.sign(payload, process.env.JWT_SECRET, {
@@ -8,6 +11,8 @@ const signToken = (payload) =>
   });
 
 const verifyToken = (token) => jwt.verify(token, process.env.JWT_SECRET);
+
+const decodeToken = (token) => jwt.decode(token);
 
 const cookieOptions = () => ({
   httpOnly: true,
@@ -25,4 +30,4 @@ const clearAuthCookie = (res) => {
   res.clearCookie(COOKIE_NAME, { ...cookieOptions(), maxAge: undefined });
 };
 
-module.exports = { COOKIE_NAME, signToken, verifyToken, setAuthCookie, clearAuthCookie };
+module.exports = { COOKIE_NAME, newSid, signToken, verifyToken, decodeToken, setAuthCookie, clearAuthCookie };
