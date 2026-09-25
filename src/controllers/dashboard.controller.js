@@ -1,22 +1,19 @@
 const Transaction = require("../models/Transactions");
 const { ok, fail } = require("../utils/response");
+const { dateFor } = require("../utils/recurrence");
 
-const pad = (n) => String(n).padStart(2, "0");
-
-const monthRange = (month, year) => {
-  const lastDay = new Date(year, month, 0).getDate();
-  return {
-    start: `${year}-${pad(month)}-01`,
-    end: `${year}-${pad(month)}-${pad(lastDay)}`,
-  };
-};
+const monthRange = (month, year) => ({
+  start: dateFor(year, month, 1),
+  // Exclusive upper bound: midnight UTC of the 1st of the following month.
+  end: month === 12 ? dateFor(year + 1, 1, 1) : dateFor(year, month + 1, 1),
+});
 
 const sumForMonth = async (userId, month, year) => {
   const { start, end } = monthRange(month, year);
   const transactions = await Transaction.find({
     user: userId,
     type: { $in: ["Income", "Expense"] },
-    date: { $gte: start, $lte: end },
+    date: { $gte: start, $lt: end },
   });
 
   return {
@@ -33,8 +30,8 @@ const percentChange = (curr, prev) => {
 const getSummary = async (req, res) => {
   try {
     const now = new Date();
-    const month = req.query.month ? Number(req.query.month) : now.getMonth() + 1;
-    const year = now.getFullYear();
+    const month = req.query.month ? Number(req.query.month) : now.getUTCMonth() + 1;
+    const year = now.getUTCFullYear();
 
     const [current, balanceEntry] = await Promise.all([
       sumForMonth(req.user.id, month, year),

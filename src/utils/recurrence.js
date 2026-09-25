@@ -1,36 +1,35 @@
-const dayOfMonth = (dateStr) => Number(dateStr.slice(8, 10));
+const { todayUtc, formatDateStr } = require("./dateUtc");
 
-const diffInDays = (a, b) => {
-  const ms = new Date(a + "T00:00:00Z") - new Date(b + "T00:00:00Z");
-  return Math.round(ms / 86400000);
-};
+// All functions here operate on UTC-midnight Date objects (see dateUtc.js).
+// "today"/due-date comparisons use plain Date comparison, which is safe as
+// long as every Date involved is truncated to UTC midnight.
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const dayOfMonth = (date) => date.getUTCDate();
 
-const isDueOn = (rule, dateStr) => {
+const diffInDays = (a, b) => Math.round((a.getTime() - b.getTime()) / 86400000);
+
+const today = () => todayUtc();
+
+const isDueOn = (rule, date) => {
   if (!rule.active) return false;
-  if (dateStr < rule.startDate) return false;
-  if (rule.endDate && dateStr > rule.endDate) return false;
+  if (date < rule.startDate) return false;
+  if (rule.endDate && date > rule.endDate) return false;
 
   if (rule.frequency === "monthly-same-day") {
-    return dayOfMonth(dateStr) === dayOfMonth(rule.startDate);
+    return dayOfMonth(date) === dayOfMonth(rule.startDate);
   }
 
   if (rule.frequency === "every-n-days") {
     const anchor = rule.scheduleAnchor || rule.startDate;
-    if (dateStr < anchor) return false;
-    return diffInDays(dateStr, anchor) % rule.interval === 0;
+    if (date < anchor) return false;
+    return diffInDays(date, anchor) % rule.interval === 0;
   }
 
   return false;
 };
 
-const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
+const daysInMonth = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
 
-const dateStrFor = (year, month, day) => {
-  const mm = String(month).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
-  return `${year}-${mm}-${dd}`;
-};
+const dateFor = (year, month, day) => new Date(Date.UTC(year, month - 1, day));
 
-module.exports = { dayOfMonth, diffInDays, todayStr, isDueOn, daysInMonth, dateStrFor };
+module.exports = { dayOfMonth, diffInDays, today, isDueOn, daysInMonth, dateFor, formatDateStr };

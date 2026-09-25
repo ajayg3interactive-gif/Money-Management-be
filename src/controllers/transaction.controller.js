@@ -1,9 +1,10 @@
 const Transactions = require("../models/Transactions");
 const { ok, fail } = require("../utils/response");
+const { parseDateStr, formatDateStr } = require("../utils/dateUtc");
 
 const format = (t) => ({
   id: t._id,
-  date: t.date,
+  date: formatDateStr(t.date),
   description: t.description,
   category: t.category,
   amount: t.amount,
@@ -26,9 +27,14 @@ const create = async (req, res) => {
       return fail(res, 400, "VALIDATION_ERROR", "Date, category, amount and type are required");
     }
 
+    const parsedDate = parseDateStr(date);
+    if (!parsedDate) {
+      return fail(res, 400, "VALIDATION_ERROR", "Date must be in YYYY-MM-DD format");
+    }
+
     const transaction = new Transactions({
       user: req.user.id,
-      date,
+      date: parsedDate,
       description,
       category,
       amount,
@@ -45,9 +51,14 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { date, description, category, amount, type } = req.body;
+    const parsedDate = parseDateStr(date);
+    if (date && !parsedDate) {
+      return res.status(400).json({ error: "Date must be in YYYY-MM-DD format" });
+    }
+
     const updated = await Transactions.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      { date, description, category, amount, type },
+      { date: parsedDate, description, category, amount, type },
       { new: true, runValidators: true }
     );
     if (!updated) return res.status(404).json({ error: "Transaction not found" });

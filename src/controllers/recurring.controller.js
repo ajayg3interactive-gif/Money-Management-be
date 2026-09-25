@@ -2,7 +2,8 @@ const RecurringTransaction = require("../models/RecurringTransaction");
 const RecurringOccurrence = require("../models/RecurringOccurrence");
 const Transaction = require("../models/Transactions");
 const { ok, fail } = require("../utils/response");
-const { isDueOn, todayStr, daysInMonth, dateStrFor } = require("../utils/recurrence");
+const { isDueOn, today: todayUtc, daysInMonth, dateFor } = require("../utils/recurrence");
+const { parseDateStr, formatDateStr } = require("../utils/dateUtc");
 
 const formatRule = (r) => ({
   id: r._id,
@@ -10,8 +11,8 @@ const formatRule = (r) => ({
   category: r.category,
   amount: r.amount,
   type: r.type,
-  startDate: r.startDate,
-  endDate: r.endDate,
+  startDate: formatDateStr(r.startDate),
+  endDate: formatDateStr(r.endDate),
   frequency: r.frequency,
   interval: r.interval,
   active: r.active,
@@ -37,18 +38,27 @@ const createRule = async (req, res) => {
       return fail(res, 400, "VALIDATION_ERROR", "A valid interval (in days) is required for this frequency");
     }
 
+    const parsedStartDate = parseDateStr(startDate);
+    if (!parsedStartDate) {
+      return fail(res, 400, "VALIDATION_ERROR", "Start date must be in YYYY-MM-DD format");
+    }
+    const parsedEndDate = endDate ? parseDateStr(endDate) : null;
+    if (endDate && !parsedEndDate) {
+      return fail(res, 400, "VALIDATION_ERROR", "End date must be in YYYY-MM-DD format");
+    }
+
     const rule = await RecurringTransaction.create({
       user: req.user.id,
       description,
       category,
       amount,
       type,
-      startDate,
-      endDate: endDate || null,
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
       frequency,
       interval: frequency === "every-n-days" ? interval : null,
       active: true,
-      scheduleAnchor: startDate,
+      scheduleAnchor: parsedStartDate,
     });
 
     return ok(res, formatRule(rule), 201);
@@ -93,20 +103,21 @@ const getOccurrences = async (req, res) => {
     }
 
     const rules = await RecurringTransaction.find({ user: req.user.id });
-    const rangeStart = dateStrFor(year, month, 1);
-    const rangeEnd = dateStrFor(year, month, daysInMonth(year, month));
+    const rangeStart = dateFor(year, month, 1);
+    const rangeEnd = dateFor(year, month, daysInMonth(year, month));
 
     const docs = await RecurringOccurrence.find({
       user: req.user.id,
       date: { $gte: rangeStart, $lte: rangeEnd },
     });
-    const docsByKey = new Map(docs.map((d) => [`${d.rule}_${d.date}`, d]));
+    const docsByKey = new Map(docs.map((d) => [`${d.rule}_${formatDateStr(d.date)}`, d]));
 
     const occurrences = [];
     for (const rule of rules) {
       const total = daysInMonth(year, month);
       for (let day = 1; day <= total; day++) {
-        const dateStr = dateStrFor(year, month, day);
+        const date = dateFor(year, month, day);
+        const dateStr = formatDateStr(date);
         const doc = docsByKey.get(`${rule._id}_${dateStr}`);
 
         if (doc) {
@@ -120,7 +131,7 @@ const getOccurrences = async (req, res) => {
             amount: rule.amount,
             type: rule.type,
           });
-        } else if (isDueOn(rule, dateStr)) {
+        } else if (isDueOn(rule, date)) {
           occurrences.push({
             ruleId: rule._id,
             date: dateStr,
@@ -144,8 +155,10 @@ const getOccurrences = async (req, res) => {
 
 const holdOccurrence = async (req, res) => {
   try {
-    const { ruleId, date } = req.body;
-    if (!ruleId || !date) return fail(res, 400, "VALIDATION_ERROR", "ruleId and date are required");
+    const { ruleId, date: dateStr } = req.body;
+    if (!ruleId || !dateStr) return fail(res, 400, "VALIDATION_ERROR", "ruleId and date are required");
+    const date = parseDateStr(dateStr);
+    if (!date) return fail(res, 400, "VALIDATION_ERROR", "date must be in YYYY-MM-DD format");
 
     const rule = await RecurringTransaction.findOne({ _id: ruleId, user: req.user.id });
     if (!rule) return fail(res, 404, "RULE_NOT_FOUND", "Recurring transaction not found");
@@ -168,7 +181,7 @@ const holdOccurrence = async (req, res) => {
       });
     }
 
-    return ok(res, { ruleId: rule._id, date, status: "held" });
+    return ok(res, { ruleId: rule._id, date: dateStr, status: "held" });
   } catch (err) {
     console.error("hold occurrence failed:", err);
     return fail(res, 400, "OCCURRENCE_HOLD_FAILED", err.message);
@@ -177,8 +190,10 @@ const holdOccurrence = async (req, res) => {
 
 const unholdOccurrence = async (req, res) => {
   try {
-    const { ruleId, date } = req.body;
-    if (!ruleId || !date) return fail(res, 400, "VALIDATION_ERROR", "ruleId and date are required");
+    const { ruleId, date: dateStr } = req.body;
+    if (!ruleId || !dateStr) return fail(res, 400, "VALIDATION_ERROR", "ruleId and date are required");
+    const date = parseDateStr(dateStr);
+    if (!date) return fail(res, 400, "VALIDATION_ERROR", "date must be in YYYY-MM-DD format");
 
     const rule = await RecurringTransaction.findOne({ _id: ruleId, user: req.user.id });
     if (!rule) return fail(res, 404, "RULE_NOT_FOUND", "Recurring transaction not found");
@@ -186,7 +201,7 @@ const unholdOccurrence = async (req, res) => {
     const doc = await RecurringOccurrence.findOne({ rule: rule._id, date, status: "held" });
     if (!doc) return fail(res, 404, "OCCURRENCE_NOT_HELD", "This occurrence is not on hold");
 
-    const today = todayStr();
+    const today = todayUtc();
     const isOverdue = today >= date;
 
     if (isOverdue) {
@@ -207,12 +222,12 @@ const unholdOccurrence = async (req, res) => {
         await rule.save();
       }
 
-      return ok(res, { ruleId: rule._id, date, status: "posted", transactionId: transaction._id });
+      return ok(res, { ruleId: rule._id, date: formatDateStr(today), status: "posted", transactionId: transaction._id });
     }
 
     // Occurrence date hasn't arrived yet — just resume normal generation.
     await doc.deleteOne();
-    return ok(res, { ruleId: rule._id, date, status: "pending" });
+    return ok(res, { ruleId: rule._id, date: dateStr, status: "pending" });
   } catch (err) {
     console.error("unhold occurrence failed:", err);
     return fail(res, 400, "OCCURRENCE_UNHOLD_FAILED", err.message);

@@ -1,10 +1,10 @@
 const RecurringTransaction = require("../models/RecurringTransaction");
 const RecurringOccurrence = require("../models/RecurringOccurrence");
 const Transaction = require("../models/Transactions");
-const { isDueOn, todayStr } = require("../utils/recurrence");
+const { isDueOn, today: todayUtc } = require("../utils/recurrence");
 
 const processDueOccurrences = async () => {
-  const today = todayStr();
+  const today = todayUtc();
   const rules = await RecurringTransaction.find({ active: true });
 
   for (const rule of rules) {

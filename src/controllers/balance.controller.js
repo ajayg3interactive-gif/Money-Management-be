@@ -2,6 +2,7 @@ const Transaction = require("../models/Transactions");
 const User = require("../models/User");
 const { CURRENCIES } = require("../data/currencies");
 const { ok, fail } = require("../utils/response");
+const { parseDateStr, formatDateStr } = require("../utils/dateUtc");
 
 const getBalanceEntry = (userId) =>
   Transaction.findOne({ user: userId, type: "Balance" });
@@ -19,7 +20,7 @@ const getBalance = async (req, res) => {
 
     return ok(res, {
       amount: entry?.amount ?? 0,
-      date: entry?.date ?? null,
+      date: entry?.date ? formatDateStr(entry.date) : null,
       currency: user?.currency ?? "USD",
     });
   } catch (err) {
@@ -37,6 +38,10 @@ const saveBalance = async (req, res) => {
     if (!date) {
       return fail(res, 400, "VALIDATION_ERROR", "Balance date is required");
     }
+    const parsedDate = parseDateStr(date);
+    if (!parsedDate) {
+      return fail(res, 400, "VALIDATION_ERROR", "Balance date must be in YYYY-MM-DD format");
+    }
     if (!currency || !CURRENCIES.some((c) => c.code === currency)) {
       return fail(res, 400, "VALIDATION_ERROR", "A valid currency is required");
     }
@@ -44,13 +49,13 @@ const saveBalance = async (req, res) => {
     const [entry] = await Promise.all([
       Transaction.findOneAndUpdate(
         { user: req.user.id, type: "Balance" },
-        { user: req.user.id, type: "Balance", amount: Number(amount), date },
+        { user: req.user.id, type: "Balance", amount: Number(amount), date: parsedDate },
         { new: true, upsert: true, runValidators: true }
       ),
       User.findByIdAndUpdate(req.user.id, { currency }),
     ]);
 
-    return ok(res, { amount: entry.amount, date: entry.date, currency });
+    return ok(res, { amount: entry.amount, date: formatDateStr(entry.date), currency });
   } catch (err) {
     console.error("save balance failed:", err);
     return fail(res, 400, "BALANCE_SAVE_FAILED", "Could not save balance. Please try again.");

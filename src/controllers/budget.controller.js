@@ -1,6 +1,7 @@
 const Budget = require("../models/Budget");
 const Transaction = require("../models/Transactions");
 const { ok, fail } = require("../utils/response");
+const { dateFor } = require("../utils/recurrence");
 
 const format = (b) => ({
   id: b._id,
@@ -10,13 +11,12 @@ const format = (b) => ({
 
 const currentMonthRange = (month, year) => {
   const now = new Date();
-  const targetYear = year ? Number(year) : now.getFullYear();
-  const targetMonth = month ? Number(month) : now.getMonth() + 1;
-  const pad = (n) => String(n).padStart(2, "0");
-  const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+  const targetYear = year ? Number(year) : now.getUTCFullYear();
+  const targetMonth = month ? Number(month) : now.getUTCMonth() + 1;
   return {
-    start: `${targetYear}-${pad(targetMonth)}-01`,
-    end: `${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
+    start: dateFor(targetYear, targetMonth, 1),
+    // Exclusive upper bound: midnight UTC of the 1st of the following month.
+    end: targetMonth === 12 ? dateFor(targetYear + 1, 1, 1) : dateFor(targetYear, targetMonth + 1, 1),
   };
 };
 
@@ -28,7 +28,7 @@ const getAll = async (req, res) => {
     const expenses = await Transaction.find({
       user: req.user.id,
       type: "Expense",
-      date: { $gte: start, $lte: end },
+      date: { $gte: start, $lt: end },
     });
     const spentByCategory = expenses.reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
