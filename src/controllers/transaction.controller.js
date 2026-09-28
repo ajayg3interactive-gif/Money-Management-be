@@ -78,5 +78,47 @@ const remove = async (req, res) => {
   }
 };
 
+const bulkCreate = async (req, res) => {
+  try {
+    const { transactions } = req.body;
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return fail(res, 400, "VALIDATION_ERROR", "transactions must be a non-empty array");
+    }
 
-module.exports = { getAll, create, update, remove };
+    const docs = [];
+    for (let i = 0; i < transactions.length; i++) {
+      const { date, description, category, amount, type } = transactions[i];
+
+      if (!["Income", "Expense"].includes(type)) {
+        return fail(res, 400, "VALIDATION_ERROR", `Row ${i + 1}: type must be Income or Expense`);
+      }
+      if (!category) {
+        return fail(res, 400, "VALIDATION_ERROR", `Row ${i + 1}: category is required`);
+      }
+      if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+        return fail(res, 400, "VALIDATION_ERROR", `Row ${i + 1}: amount must be a positive number`);
+      }
+      const parsedDate = parseDateStr(date);
+      if (!parsedDate) {
+        return fail(res, 400, "VALIDATION_ERROR", `Row ${i + 1}: date must be in YYYY-MM-DD format`);
+      }
+
+      docs.push({
+        user: req.user.id,
+        date: parsedDate,
+        description: description || "",
+        category,
+        amount,
+        type,
+      });
+    }
+
+    const saved = await Transactions.insertMany(docs);
+    return ok(res, saved.map(format), 201);
+  } catch (err) {
+    console.error("bulk create transactions failed:", err);
+    return fail(res, 400, "TRANSACTION_BULK_CREATE_FAILED", "Could not import transactions. Please try again.");
+  }
+};
+
+module.exports = { getAll, create, update, remove, bulkCreate };
