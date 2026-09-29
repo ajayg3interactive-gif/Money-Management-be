@@ -12,6 +12,7 @@ const transactionSchemma = new mongoose.Schema({
   },
   amount: { type: Number, required: true },
   type: { type: String, enum: ["Income", "Expense", "Balance"], required: true },
+  fromRecurring: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model("Transaction", transactionSchemma);

@@ -34,8 +34,8 @@ const createRule = async (req, res) => {
     if (!category || amount === undefined || amount === null || !type || !startDate || !frequency) {
       return fail(res, 400, "VALIDATION_ERROR", "Category, amount, type, start date and frequency are required");
     }
-    if (frequency === "every-n-days" && (!interval || interval < 1)) {
-      return fail(res, 400, "VALIDATION_ERROR", "A valid interval (in days) is required for this frequency");
+    if (frequency === "every-n-days" && (!Number.isInteger(interval) || interval < 1)) {
+      return fail(res, 400, "VALIDATION_ERROR", "A valid whole-number interval (in days) is required for this frequency");
     }
 
     const parsedStartDate = parseDateStr(startDate);
@@ -212,6 +212,7 @@ const unholdOccurrence = async (req, res) => {
         category: rule.category,
         amount: rule.amount,
         type: rule.type,
+        fromRecurring: true,
       });
       doc.status = "posted";
       doc.transaction = transaction._id;

@@ -20,6 +20,7 @@ const processDueOccurrences = async () => {
       category: rule.category,
       amount: rule.amount,
       type: rule.type,
+      fromRecurring: true,
     });
 
     await RecurringOccurrence.create({

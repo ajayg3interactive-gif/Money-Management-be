@@ -9,6 +9,7 @@ const format = (t) => ({
   category: t.category,
   amount: t.amount,
   type: t.type,
+  fromRecurring: t.fromRecurring ?? false,
 });
 
 const getAll = async (req, res) => {
