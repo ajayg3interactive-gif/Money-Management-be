@@ -2,7 +2,7 @@ const RecurringTransaction = require("../models/RecurringTransaction");
 const RecurringOccurrence = require("../models/RecurringOccurrence");
 const Transaction = require("../models/Transactions");
 const { ok, fail } = require("../utils/response");
-const { isDueOn, today: todayUtc, daysInMonth, dateFor } = require("../utils/recurrence");
+const { isDueOn, isAdjustedMonthly, dayOfMonth, today: todayUtc, daysInMonth, dateFor } = require("../utils/recurrence");
 const { parseDateStr, formatDateStr } = require("../utils/dateUtc");
 
 const formatRule = (r) => ({
@@ -120,27 +120,19 @@ const getOccurrences = async (req, res) => {
         const dateStr = formatDateStr(date);
         const doc = docsByKey.get(`${rule._id}_${dateStr}`);
 
-        if (doc) {
+        if (doc || isDueOn(rule, date)) {
+          const adjusted = isAdjustedMonthly(rule, date);
           occurrences.push({
             ruleId: rule._id,
             date: dateStr,
-            status: doc.status,
-            transactionId: doc.transaction,
+            status: doc ? doc.status : "pending",
+            transactionId: doc ? doc.transaction : null,
             description: rule.description,
             category: rule.category,
             amount: rule.amount,
             type: rule.type,
-          });
-        } else if (isDueOn(rule, date)) {
-          occurrences.push({
-            ruleId: rule._id,
-            date: dateStr,
-            status: "pending",
-            transactionId: null,
-            description: rule.description,
-            category: rule.category,
-            amount: rule.amount,
-            type: rule.type,
+            adjusted,
+            scheduledDay: adjusted ? dayOfMonth(rule.startDate) : null,
           });
         }
       }

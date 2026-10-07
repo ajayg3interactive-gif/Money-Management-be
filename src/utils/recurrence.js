@@ -10,13 +10,24 @@ const diffInDays = (a, b) => Math.round((a.getTime() - b.getTime()) / 86400000);
 
 const today = () => todayUtc();
 
+const daysInMonth = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+// Monthly rules fall on the start day; in months that don't have it (e.g. the 31st in April)
+// they fall on the last day of the month instead.
+const effectiveMonthlyDay = (rule, date) =>
+  Math.min(dayOfMonth(rule.startDate), daysInMonth(date.getUTCFullYear(), date.getUTCMonth() + 1));
+
+/** True when a monthly rule's occurrence on `date` was moved up because the month is too short. */
+const isAdjustedMonthly = (rule, date) =>
+  rule.frequency === "monthly-same-day" && dayOfMonth(date) < dayOfMonth(rule.startDate);
+
 const isDueOn = (rule, date) => {
   if (!rule.active) return false;
   if (date < rule.startDate) return false;
   if (rule.endDate && date > rule.endDate) return false;
 
   if (rule.frequency === "monthly-same-day") {
-    return dayOfMonth(date) === dayOfMonth(rule.startDate);
+    return dayOfMonth(date) === effectiveMonthlyDay(rule, date);
   }
 
   if (rule.frequency === "every-n-days") {
@@ -28,8 +39,6 @@ const isDueOn = (rule, date) => {
   return false;
 };
 
-const daysInMonth = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
-
 const dateFor = (year, month, day) => new Date(Date.UTC(year, month - 1, day));
 
-module.exports = { dayOfMonth, diffInDays, today, isDueOn, daysInMonth, dateFor, formatDateStr };
+module.exports = { dayOfMonth, diffInDays, today, isDueOn, isAdjustedMonthly, daysInMonth, dateFor, formatDateStr };
